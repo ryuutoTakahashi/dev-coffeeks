@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Coffee Encyclopedia API
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs18.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        NODE_ENV: !Ref Environment
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  # API Gateway
+  CoffeeEncyclopediaApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Lambda Functions
+  GetVarietiesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'coffee-encyclopedia-get-varieties-${Environment}'
+      CodeUri: dist/
+      Handler: handlers/varieties.getVarieties
+      Events:
+        GetVarieties:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoffeeEncyclopediaApi
+            Path: /varieties
+            Method: GET
+
+  GetVarietyByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'coffee-encyclopedia-get-variety-${Environment}'
+      CodeUri: dist/
+      Handler: handlers/varieties.getVarietyById
+      Events:
+        GetVarietyById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoffeeEncyclopediaApi
+            Path: /varieties/{id}
+            Method: GET
+
+  SearchVarietiesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub 'coffee-encyclopedia-search-varieties-${Environment}'
+      CodeUri: dist/
+      Handler: handlers/varieties.searchVarieties
+      Events:
+        SearchVarieties:
+          Type: Api
+          Properties:
+            RestApiId: !Ref CoffeeEncyclopediaApi
+            Path: /varieties/search
+            Method: GET
+
+Outputs:
+  CoffeeEncyclopediaApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${CoffeeEncyclopediaApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  
+  CoffeeEncyclopediaApiId:
+    Description: "API Gateway ID"
+    Value: !Ref CoffeeEncyclopediaApi 
